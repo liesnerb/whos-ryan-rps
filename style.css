@@ -1,3 +1,6 @@
+/* ============================================================
+   GLOBAL & LAYOUT
+   ============================================================ */
 body {
   background: #bababa;
   margin: 0;
@@ -5,16 +8,17 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Prevent scrolling on mobile when interacting */
-  overflow: hidden; 
+  /* Prevent scrolling and accidental zooming on mobile */
+  overflow: hidden;
+  touch-action: none; 
 }
 
-/* Perspective (ONE place only) */
+/* Perspective Container */
 .device-wrapper {
   perspective: 1000px;
 }
 
-/* Device */
+/* Main Device Container */
 .device {
   position: relative;
   width: 360px;
@@ -23,7 +27,7 @@ body {
   will-change: transform;
 }
 
-/* PNG layers */
+/* All PNG Layers */
 .layer {
   position: absolute;
   inset: 0;
@@ -32,20 +36,18 @@ body {
   backface-visibility: hidden;
 }
 
-/* Depth stack */
+/* Depth Stack (Z-axis) */
 .shell      { transform: translateZ(0); }
 .embossed   { transform: translateZ(6px); }
 .buttons    { transform: translateZ(10px); }
 .logo       { transform: translateZ(14px); }
-
 .screen-art { transform: translateZ(22px); }
 .rps        { transform: translateZ(15px); }
 .light      { transform: translateZ(30px); opacity: 1; }
 
-/* =========================
-   LCD
-   ========================= */
-
+/* ============================================================
+   LCD SCREEN & TEXT
+   ============================================================ */
 .screen {
   position: absolute;
   top: 140px;
@@ -55,169 +57,123 @@ body {
   border-radius: 10px;
   overflow: hidden;
   transform: translateZ(18px);
-  backface-visibility: hidden;
-
-  /* LCD BASE (NOT TRANSPARENT) */
-  background: rgba(143, 164, 122, 0);
-
-  /* Shine vars */
+  background: rgba(143, 164, 122, 0); 
+  transition: filter 0.15s ease, opacity 0.3s ease;
   --shine-x: 50%;
   --shine-y: 50%;
   --shine-opacity: .2;
 }
 
-/* === CONSTANT GLASS GLARE === */
 .screen::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-
   background:
-    radial-gradient(
-      ellipse at 50% 18%,
-      rgba(255,255,255,0.18),
-      rgba(255,255,255,0.06) 40%,
-      rgba(255,255,255,0.0) 65%
-    ),
-    linear-gradient(
-      to bottom,
-      rgba(255,255,255,0.10),
-      rgba(255,255,255,0.02) 40%,
-      rgba(0,0,0,0.10)
-    );
-
+    radial-gradient(ellipse at 50% 18%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 40%, transparent 65%),
+    linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.10));
   opacity: 0.7;
 }
 
-/* === DIRECTIONAL SHINE === */
-.screen::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,0.35) 0%,
-    rgba(255,255,255,0.18) 25%,
-    rgba(255,255,255,0.08) 45%,
-    rgba(255,255,255,0.0) 60%
-  );
-
-  opacity: var(--shine-opacity);
-  transform: translate(
-    calc((var(--shine-x) - 50%) * -0.15),
-    calc((var(--shine-y) - 50%) * -0.15)
-  );
-}
-.screen {
-  transition: filter 0.15s ease, opacity 0.3s ease;
-}
-
-/* =========================
-   LCD TEXT (STACKED + CENTERED)
-   ========================= */
-
 .screen-text {
   position: relative;
-  z-index: 1; /* ABOVE BASE, BELOW SHINE */
-
+  z-index: 1;
   width: 100%;
   height: 90%;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
   text-align: center;
-
   font-family: monospace;
   font-size: 12px;
   line-height: 1.4;
   letter-spacing: 3px;
-
   color: #121e12;
-
-  text-shadow:
-    1px 0 rgba(0,0,0,0.15),
-   -1px 0 rgba(255,255,255,0.08);
-
+  text-shadow: 1px 0 rgba(0,0,0,0.15), -1px 0 rgba(255,255,255,0.08);
   filter: blur(0.3px);
 }
 
-/* =========================
-   BUTTONS
-   ========================= */
-
+/* ============================================================
+   INTERACTIVE BUTTONS (Hit-Areas)
+   ============================================================ */
 button {
   position: absolute;
   background: transparent;
   border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  /* FIX 2: Better touch response */
-  touch-action: manipulation; 
+  touch-action: manipulation;
+  z-index: 100;
+  transform: translateZ(40px); /* Keeps hit areas above image layers */
+  
+  /* SET TO RED TO SEE BOXES DURING TESTING: background: rgba(255,0,0,0.4); */
 }
 
-/* RPS buttons */
+/* Rock Button */
 .btn-rock {
-  width: 25px;
-  height: 25px;
-  top: 369px;
-  left: 81px;
-  border-radius: 50%;
+  width: 53px;
+  height: 42px;
+  top: 358px;
+  left: 70px;
 }
 
+/* Paper Button (Middle) */
 .btn-paper {
-  width: 25px;
-  height: 25px;
-  top: 405px;
-  left: 168px;
-  border-radius: 50%;
+  width: 53px;
+  height: 47px;
+  top: 391px;
+  left: 154px; /* Adjusted to prevent overlap with rock */
 }
 
+/* Scissors Button */
 .btn-scissors {
-  width: 25px;
-  height: 25px;
-  top: 367px;
-  left: 255px;
-  border-radius: 50%;
+  width: 53px;
+  height: 42px;
+  top: 357px;
+  left: 238px; /* Adjusted to prevent overlap with paper */
 }
 
-/* Start / Reset */
+/* Start Button */
 .btn-start {
-  width: 30px;
-  height: 10px;
-  top: 306px;
-  left: 125px;
+  width: 54px;
+  height: 31px;
+  top: 294px;
+  left: 114px;
 }
 
+/* Reset Button */
 .btn-reset {
-  width: 30px;
-  height: 10px;
-  top: 306px;
-  left: 205px;
+  width: 54px;
+  height: 31px;
+  top: 293px;
+  left: 194px;
 }
 
-button:focus,
+/* Tap Feedback */
 button:active {
-  outline: none;
-  box-shadow: none;
+  filter: brightness(1.4);
 }
 
-/* =========================
-   FIX 3: MOBILE RESIZING
-   ========================= */
+/* ============================================================
+   MOBILE RESPONSIVENESS
+   ============================================================ */
+
+/* Scale device down for narrow screens (iPhone SE, etc) */
 @media (max-width: 380px) {
   .device-wrapper {
-    /* Shrink the whole game to fit small phone screens */
-    transform: scale(0.85); 
+    transform: scale(0.88);
   }
 }
+
+/* Scale device down for short screens */
 @media (max-height: 600px) {
   .device-wrapper {
-    transform: scale(0.80);
+    transform: scale(0.75);
   }
 }
+
+/* DEBUG TIP: 
+   If you can't tell where the buttons are, find the "button" 
+   section above and add: background: rgba(255, 0, 0, 0.4);
+*/
