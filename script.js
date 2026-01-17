@@ -29,7 +29,6 @@ buffer.height = titleCanvas.height;
 function drawTitleText() {
   bctx.clearRect(0, 0, buffer.width, buffer.height);
   bctx.fillStyle = '#121e12';
-  // Forces the use of the loaded Google Font
   bctx.font = '900 20px "Archivo Black", sans-serif'; 
   bctx.textBaseline = 'middle';
   bctx.textAlign = 'center';
@@ -54,6 +53,7 @@ function drawTitle() {
    GAME LOGIC
    ====================== */
 function showTitleScreen() {
+  clearInterval(countdownInterval);
   clearInterval(blinkInterval);
   cancelAnimationFrame(animId);
   gameState = 'title';
@@ -67,6 +67,11 @@ function showTitleScreen() {
   }, 800);
 }
 
+function renderDots(n) {
+  // FIX: Using innerHTML clears out the previous "WIN/LOSE" text entirely
+  screenText.innerHTML = (n >= 1 ? '● ' : '○ ') + (n >= 2 ? '● ' : '○ ') + (n >= 3 ? '●' : '○');
+}
+
 function startRound() {
   clearInterval(blinkInterval);
   cancelAnimationFrame(animId);
@@ -74,15 +79,18 @@ function startRound() {
   timeLeft = 3;
   playerMove = null;
   titleCanvas.style.display = 'none';
-  screenText.textContent = '● ● ●';
+  renderDots(timeLeft);
+  
   countdownInterval = setInterval(function() {
     timeLeft--;
-    screenText.textContent = (timeLeft >= 1 ? '● ' : '○ ') + (timeLeft >= 2 ? '● ' : '○ ') + (timeLeft >= 3 ? '●' : '○');
-    if (window.soundController) window.soundController.playTickSound();
+    renderDots(timeLeft);
+    if (window.soundController && window.soundController.playTickSound) {
+      window.soundController.playTickSound();
+    }
     if (timeLeft === 0) {
       clearInterval(countdownInterval);
       if (!playerMove) {
-        screenText.textContent = 'FORFEIT';
+        screenText.innerHTML = 'FORFEIT';
         setTimeout(startRound, ROUND_PAUSE);
       } else {
         resolveRound(playerMove);
@@ -104,14 +112,17 @@ function resolveRound(move) {
    ====================== */
 rpsButtons.forEach(function(b) {
   b.addEventListener('click', function() {
-    if (gameState === 'countdown' && !playerMove) playerMove = b.dataset.move;
+    if (gameState === 'countdown' && !playerMove) {
+        playerMove = b.dataset.move;
+        // Visual feedback for tap
+        screenText.innerHTML = "WAITING...";
+    }
   });
 });
 
 startButton.addEventListener('click', function() { if (gameState === 'title') startRound(); });
 resetButton.addEventListener('click', showTitleScreen);
 
-// FONT LOADING CHECK: Ensures the font is ready before showing the title
 if (document.fonts) {
   document.fonts.load('1em "Archivo Black"').then(showTitleScreen);
 } else {
