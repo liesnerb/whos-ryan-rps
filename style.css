@@ -1,0 +1,204 @@
+body {
+  background: #bababa;
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Perspective (ONE place only) */
+.device-wrapper {
+  perspective: 1000px;
+}
+
+/* Device */
+.device {
+  position: relative;
+  width: 360px;
+  height: 560px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* PNG layers */
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+/* Depth stack */
+.shell      { transform: translateZ(0); }
+.embossed   { transform: translateZ(6px); }
+.buttons    { transform: translateZ(10px); }
+.logo       { transform: translateZ(14px); }
+
+.screen-art { transform: translateZ(22px); }
+.rps        { transform: translateZ(15px); }
+.light      { transform: translateZ(30px); opacity: 1; }
+
+/* =========================
+   LCD
+   ========================= */
+
+.screen {
+  position: absolute;
+  top: 140px;
+  left: 100px;
+  width: 160px;
+  height: 120px;
+  border-radius: 10px;
+  overflow: hidden;
+  transform: translateZ(18px);
+  backface-visibility: hidden;
+
+  /* ✅ LCD BASE (NOT TRANSPARENT) */
+  background: rgba(143, 164, 122, 0);
+
+  /* Shine vars */
+  --shine-x: 50%;
+  --shine-y: 50%;
+  --shine-opacity: .2;
+}
+
+/* === CONSTANT GLASS GLARE === */
+.screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      ellipse at 50% 18%,
+      rgba(255,255,255,0.18),
+      rgba(255,255,255,0.06) 40%,
+      rgba(255,255,255,0.0) 65%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.10),
+      rgba(255,255,255,0.02) 40%,
+      rgba(0,0,0,0.10)
+    );
+
+  opacity: 0.7;
+}
+
+/* === DIRECTIONAL SHINE === */
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background: linear-gradient(
+    120deg,
+    rgba(255,255,255,0.35) 0%,
+    rgba(255,255,255,0.18) 25%,
+    rgba(255,255,255,0.08) 45%,
+    rgba(255,255,255,0.0) 60%
+  );
+
+  opacity: var(--shine-opacity);
+  transform: translate(
+    calc((var(--shine-x) - 50%) * -0.15),
+    calc((var(--shine-y) - 50%) * -0.15)
+  );
+}
+.screen {
+  transition: filter 0.15s ease, opacity 0.3s ease;
+}
+
+/* =========================
+   LCD TEXT (STACKED + CENTERED)
+   ========================= */
+
+.screen-text {
+  position: relative;
+  z-index: 1; /* ABOVE BASE, BELOW SHINE */
+
+  width: 100%;
+  height: 90%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  text-align: center;
+
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 3px;
+
+  color: #121e12;
+
+  text-shadow:
+    1px 0 rgba(0,0,0,0.15),
+   -1px 0 rgba(255,255,255,0.08);
+
+  filter: blur(0.3px);
+}
+
+/* =========================
+   BUTTONS (INVISIBLE)
+   ========================= */
+
+button {
+  position: absolute;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* RPS buttons */
+.btn-rock {
+  width: 25px;
+  height: 25px;
+  top: 369px;
+  left: 81px;
+  border-radius: 50%;
+}
+
+.btn-paper {
+  width: 25px;
+  height: 25px;
+  top: 405px;
+  left: 168px;
+  border-radius: 50%;
+}
+
+.btn-scissors {
+  width: 25px;
+  height: 25px;
+  top: 367px;
+  left: 255px;
+  border-radius: 50%;
+}
+
+/* Start / Reset */
+.btn-start {
+  width: 30px;
+  height: 10px;
+  top: 306px;
+  left: 125px;
+}
+
+.btn-reset {
+  width: 30px;
+  height: 10px;
+  top: 306px;
+  left: 205px;
+}
+
+button:focus,
+button:active {
+  outline: none;
+  box-shadow: none;
+}

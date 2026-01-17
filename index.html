@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Who's Ryan – RPS</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="device-wrapper">
+  <div class="device">
+
+    <!-- BASE -->
+    <img src="shell.png" class="layer shell" />
+    <img src="embossed.png" class="layer embossed" />
+    <img src="buttons.png" class="layer buttons" />
+    <img src="ryn.png" class="layer logo" />
+
+    <!-- LCD -->
+    <div class="screen">
+      <canvas id="titleCanvas"></canvas>
+      <div class="screen-text">READY</div>
+    </div>
+
+    <!-- TOP -->
+    <img src="screen.png" class="layer screen-art" />
+    <img src="rps.png" class="layer rps" />
+    <img src="light.png" class="layer light" />
+
+    <!-- HIT AREAS -->
+    <button class="btn btn-rock" data-move="rock"></button>
+    <button class="btn btn-paper" data-move="paper"></button>
+    <button class="btn btn-scissors" data-move="scissors"></button>
+    <button class="btn-start"></button>
+    <button class="btn-reset"></button>
+
+  </div>
+</div>
+
+<audio id="snd-click" src="sounds/click.mp3" preload="auto"></audio>
+<audio id="snd-tick" src="sounds/tick.mp3" preload="auto"></audio>
+<audio id="snd-result" src="sounds/result.mp3" preload="auto"></audio>
+
+<script src="script.js"></script>
+<script src="sound.js"></script>
+
+
+</body>
+</html>
