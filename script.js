@@ -35,6 +35,12 @@ var blinkInterval = null;
 var animId = null;
 var t = 0;
 
+// Gyroscope tracking
+var MAX_TILT = 6;
+var targetX = 0, targetY = 0;
+var currentX = 0, currentY = 0;
+var gyroEnabled = false;
+
 /* ======================
    UTILS
    ====================== */
@@ -49,6 +55,90 @@ function setRPSButtons(enabled) {
   rpsButtons.forEach(function(b) {
     b.style.pointerEvents = enabled ? 'auto' : 'none';
   });
+}
+
+/* ======================
+   GYROSCOPE CONTROL
+   ====================== */
+
+function requestGyroPermission() {
+  if (typeof DeviceOrientationEvent !== 'undefined' && 
+      typeof DeviceOrientationEvent.requestPermission === 'function') {
+    
+    // iOS 13+ requires permission
+    DeviceOrientationEvent.requestPermission()
+      .then(function(state) {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientation', handleGyro);
+          gyroEnabled = true;
+        } else {
+          console.log('Gyroscope permission denied');
+          setupMouseTilt(); // Fallback to mouse tilt
+        }
+      })
+      .catch(function(error) {
+        console.log('Gyroscope permission error:', error);
+        setupMouseTilt(); // Fallback to mouse tilt
+      });
+  } else {
+    // Non-iOS devices
+    window.addEventListener('deviceorientation', handleGyro);
+    gyroEnabled = true;
+  }
+}
+
+function handleGyro(e) {
+  if (!e.beta || !e.gamma) return;
+  
+  // beta: front back (-180, 180), gamma: left right (-90, 90)
+  // Invert beta for more natural tilt
+  var beta = e.beta || 0;
+  var gamma = e.gamma || 0;
+  
+  // Normalize and invert for more intuitive movement
+  targetX = (beta / 15) * -1; // Reduced sensitivity
+  targetY = (gamma / 15);
+  
+  // Clamp to MAX_TILT
+  targetX = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetX));
+  targetY = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetY));
+}
+
+function setupMouseTilt() {
+  // Fallback to mouse movement on desktop
+  device.addEventListener('mousemove', function(e) {
+    var rect = device.getBoundingClientRect();
+    var cx = rect.width / 2;
+    var cy = rect.height / 2;
+    
+    // Calculate mouse position relative to center
+    var relX = e.clientX - rect.left - cx;
+    var relY = e.clientY - rect.top - cy;
+    
+    // Normalize and apply tilt
+    targetX = (relY / cy) * -MAX_TILT;
+    targetY = (relX / cx) * MAX_TILT;
+  });
+
+  device.addEventListener('mouseleave', function() {
+    targetX = 0;
+    targetY = 0;
+  });
+}
+
+function tiltLoop() {
+  // Smooth interpolation
+  currentX += (targetX - currentX) * 0.1;
+  currentY += (targetY - currentY) * 0.1;
+  
+  // Apply 3D transform with perspective
+  device.style.transform = 
+    'perspective(1000px) ' +
+    'rotateX(' + currentX + 'deg) ' +
+    'rotateY(' + currentY + 'deg) ' +
+    'translateZ(0)';
+  
+  requestAnimationFrame(tiltLoop);
 }
 
 /* ======================
@@ -217,15 +307,6 @@ rpsButtons.forEach(function(b) {
 });
 
 startButton.addEventListener('click', function() {
-  // Initialize Gyro permissions on first click for iOS
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    DeviceOrientationEvent.requestPermission().then(function(state) {
-      if (state === 'granted') window.addEventListener('deviceorientation', handleGyro);
-    });
-  } else {
-    window.addEventListener('deviceorientation', handleGyro);
-  }
-
   if (gameState === 'title') startRound();
 });
 
@@ -234,49 +315,19 @@ resetButton.addEventListener('click', function() {
 });
 
 /* ======================
-   TILT & GYRO EFFECT
-   ====================== */
-
-var MAX_TILT = 6;
-var targetX = 0, targetY = 0;
-var currentX = 0, currentY = 0;
-
-function tiltLoop() {
-  currentX += (targetX - currentX) * 0.08;
-  currentY += (targetY - currentY) * 0.08;
-  device.style.transform = 'rotateX(' + currentX + 'deg) rotateY(' + currentY + 'deg)';
-  requestAnimationFrame(tiltLoop);
-}
-
-function handleGyro(e) {
-  // beta: front back (-180, 180), gamma: left right (-90, 90)
-  // We divide by 10 to normalize the tilt sensitivity
-  targetX = (e.beta / 10) * -1; 
-  targetY = (e.gamma / 10);
-  
-  // Clamp to MAX_TILT
-  targetX = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetX));
-  targetY = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetY));
-}
-
-if (device) {
-  tiltLoop();
-
-  device.addEventListener('mousemove', function(e) {
-    var rect = device.getBoundingClientRect();
-    var cx = rect.width / 2, cy = rect.height / 2;
-    targetX = ((e.clientY - rect.top - cy) / cy) * -MAX_TILT;
-    targetY = ((e.clientX - rect.left - cx) / cx) * MAX_TILT;
-  });
-
-  device.addEventListener('mouseleave', function() {
-    targetX = 0; targetY = 0;
-  });
-}
-
-/* ======================
    INITIALIZATION
    ====================== */
+
+// Start tilt animation loop
+if (device) {
+  tiltLoop();
+  
+  // Request gyro permission on page load
+  requestGyroPermission();
+  
+  // Also setup mouse fallback immediately
+  setupMouseTilt();
+}
 
 // Wait for fonts to load before showing title
 if (document.fonts) {
