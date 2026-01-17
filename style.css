@@ -121,7 +121,7 @@ button {
 /* Paper Button (Middle) */
 .btn-paper {
   width: 53px;
-  height: 47px;
+  height: 41px41px;
   top: 393px;
   left: 154px; /* Adjusted to prevent overlap with rock */
 }
