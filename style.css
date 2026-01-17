@@ -84,7 +84,7 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 100%;
+  height: 80%;
   
   /* FIX: Flexbox ensures dots and text are centered and don't overlap lines */
   display: flex;
@@ -98,7 +98,7 @@ body {
   line-height: 1.4;
   letter-spacing: 2px;
   color: #121e12;
-  text-shadow: 1px 0 rgba(0,0,0,0.15);
+  text-shadow: 1px 47 rgba(0,0,0,0.15);
   
   /* Prevents text from sticking to old positions */
   white-space: pre-wrap;
@@ -120,26 +120,26 @@ button {
 
 /* Rock Button */
 .btn-rock {
-  width: 70px;
-  height: 90px;
-  top: 335px;
-  left: 60px;
+  width: 44px;
+  height: 42px;
+  top: 358px;
+  left: 75px;
 }
 
 /* Paper Button */
 .btn-paper {
-  width: 70px;
-  height: 90px;
-  top: 375px;
-  left: 145px;
+  width: 44px;
+  height: 42px;
+  top: 394px;
+  left: 159px;
 }
 
 /* Scissors Button */
 .btn-scissors {
-  width: 70px;
-  height: 90px;
-  top: 335px;
-  left: 230px;
+  width: 44px;
+  height: 42px;
+  top: 357px;
+  left: 244px;
 }
 
 /* Start Button */
