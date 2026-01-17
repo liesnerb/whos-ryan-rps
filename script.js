@@ -52,6 +52,13 @@ function drawTitle() {
 /* ======================
    GAME LOGIC
    ====================== */
+function renderDots(n) {
+  // CRITICAL FIX: Setting innerHTML to an empty string first ensures 
+  // that old <br> tags or result text are destroyed before new dots appear.
+  var dots = (n >= 1 ? '● ' : '○ ') + (n >= 2 ? '● ' : '○ ') + (n >= 3 ? '●' : '○');
+  screenText.innerHTML = dots;
+}
+
 function showTitleScreen() {
   clearInterval(countdownInterval);
   clearInterval(blinkInterval);
@@ -67,11 +74,6 @@ function showTitleScreen() {
   }, 800);
 }
 
-function renderDots(n) {
-  // FIX: Using innerHTML clears out the previous "WIN/LOSE" text entirely
-  screenText.innerHTML = (n >= 1 ? '● ' : '○ ') + (n >= 2 ? '● ' : '○ ') + (n >= 3 ? '●' : '○');
-}
-
 function startRound() {
   clearInterval(blinkInterval);
   cancelAnimationFrame(animId);
@@ -79,14 +81,15 @@ function startRound() {
   timeLeft = 3;
   playerMove = null;
   titleCanvas.style.display = 'none';
+  
+  // Clear the screen immediately
   renderDots(timeLeft);
   
   countdownInterval = setInterval(function() {
     timeLeft--;
     renderDots(timeLeft);
-    if (window.soundController && window.soundController.playTickSound) {
-      window.soundController.playTickSound();
-    }
+    if (window.soundController) window.soundController.playTickSound();
+    
     if (timeLeft === 0) {
       clearInterval(countdownInterval);
       if (!playerMove) {
@@ -101,9 +104,18 @@ function startRound() {
 
 function resolveRound(move) {
   var cpu = moves[Math.floor(Math.random() * moves.length)];
-  if (move === cpu) screenText.innerHTML = '□<br>DRAW';
-  else if ((move === 'rock' && cpu === 'scissors') || (move === 'paper' && cpu === 'rock') || (move === 'scissors' && cpu === 'paper')) screenText.innerHTML = '○<br>WIN';
-  else screenText.innerHTML = '✕<br>LOSE';
+  var resultHTML = "";
+  
+  if (move === cpu) resultHTML = '□<br>DRAW';
+  else if ((move === 'rock' && cpu === 'scissors') || 
+           (move === 'paper' && cpu === 'rock') || 
+           (move === 'scissors' && cpu === 'paper')) {
+    resultHTML = '○<br>WIN';
+  } else {
+    resultHTML = '✕<br>LOSE';
+  }
+  
+  screenText.innerHTML = resultHTML;
   setTimeout(startRound, ROUND_PAUSE);
 }
 
@@ -114,7 +126,6 @@ rpsButtons.forEach(function(b) {
   b.addEventListener('click', function() {
     if (gameState === 'countdown' && !playerMove) {
         playerMove = b.dataset.move;
-        // Visual feedback for tap
         screenText.innerHTML = "WAITING...";
     }
   });

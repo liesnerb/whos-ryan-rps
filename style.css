@@ -55,15 +55,20 @@ body {
   width: 160px;
   height: 120px;
   border-radius: 10px;
-  overflow: hidden;
+  
+  /* FIX: overflow hidden prevents "ghost" text from previous rounds showing */
+  overflow: hidden; 
+  
   transform: translateZ(18px);
   background: rgba(143, 164, 122, 0); 
   transition: filter 0.15s ease, opacity 0.3s ease;
+  
   --shine-x: 50%;
   --shine-y: 50%;
   --shine-opacity: .2;
 }
 
+/* Glass glare overlay */
 .screen::before {
   content: "";
   position: absolute;
@@ -79,19 +84,24 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: 90%;
+  height: 100%;
+  
+  /* FIX: Flexbox ensures dots and text are centered and don't overlap lines */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  
   text-align: center;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   color: #121e12;
-  text-shadow: 1px 0 rgba(0,0,0,0.15), -1px 0 rgba(255,255,255,0.08);
-  filter: blur(0.3px);
+  text-shadow: 1px 0 rgba(0,0,0,0.15);
+  
+  /* Prevents text from sticking to old positions */
+  white-space: pre-wrap;
 }
 
 /* ============================================================
@@ -105,52 +115,50 @@ button {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   z-index: 100;
-  transform: translateZ(40px); /* Keeps hit areas above image layers */
-  
-  /* SET TO RED TO SEE BOXES DURING TESTING: background: rgba(255,0,0,0.4); */
+  transform: translateZ(40px);
 }
 
 /* Rock Button */
 .btn-rock {
-  width: 53px;
-  height: 42px;
-  top: 358px;
-  left: 70px;
+  width: 70px;
+  height: 90px;
+  top: 335px;
+  left: 60px;
 }
 
-/* Paper Button (Middle) */
+/* Paper Button */
 .btn-paper {
-  width: 53px;
-  height: 47px;
-  top: 391px;
-  left: 154px; /* Adjusted to prevent overlap with rock */
+  width: 70px;
+  height: 90px;
+  top: 375px;
+  left: 145px;
 }
 
 /* Scissors Button */
 .btn-scissors {
-  width: 53px;
-  height: 42px;
-  top: 357px;
-  left: 238px; /* Adjusted to prevent overlap with paper */
+  width: 70px;
+  height: 90px;
+  top: 335px;
+  left: 230px;
 }
 
 /* Start Button */
 .btn-start {
-  width: 54px;
-  height: 31px;
-  top: 294px;
-  left: 114px;
+  width: 60px;
+  height: 45px;
+  top: 290px;
+  left: 110px;
 }
 
 /* Reset Button */
 .btn-reset {
-  width: 54px;
-  height: 31px;
-  top: 293px;
-  left: 194px;
+  width: 60px;
+  height: 45px;
+  top: 290px;
+  left: 190px;
 }
 
-/* Tap Feedback */
+/* Visual Feedback */
 button:active {
   filter: brightness(1.4);
 }
@@ -162,7 +170,7 @@ button:active {
 /* Scale device down for narrow screens (iPhone SE, etc) */
 @media (max-width: 380px) {
   .device-wrapper {
-    transform: scale(0.88);
+    transform: scale(0.85);
   }
 }
 
@@ -172,8 +180,3 @@ button:active {
     transform: scale(0.75);
   }
 }
-
-/* DEBUG TIP: 
-   If you can't tell where the buttons are, find the "button" 
-   section above and add: background: rgba(255, 0, 0, 0.4);
-*/
