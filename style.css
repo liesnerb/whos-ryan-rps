@@ -102,6 +102,16 @@ body {
   
   /* Prevents text from sticking to old positions */
   white-space: pre-wrap;
+  
+  /* Force text to clear properly */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  
+  /* Reset opacity when needed */
+  opacity: 1;
+  
+  /* Ensure content doesn't overflow */
+  overflow: hidden;
 }
 
 /* ============================================================

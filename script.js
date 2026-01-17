@@ -53,10 +53,12 @@ function drawTitle() {
    GAME LOGIC
    ====================== */
 function renderDots(n) {
-  // CRITICAL FIX: Setting innerHTML to an empty string first ensures 
-  // that old <br> tags or result text are destroyed before new dots appear.
+  // Clear ALL content completely
+  screenText.innerHTML = '';
+  screenText.style.opacity = '1';
+  
   var dots = (n >= 1 ? '● ' : '○ ') + (n >= 2 ? '● ' : '○ ') + (n >= 3 ? '●' : '○');
-  screenText.innerHTML = dots;
+  screenText.textContent = dots;
 }
 
 function showTitleScreen() {
@@ -82,8 +84,14 @@ function startRound() {
   playerMove = null;
   titleCanvas.style.display = 'none';
   
-  // Clear the screen immediately
-  renderDots(timeLeft);
+  // Clear the screen completely
+  screenText.innerHTML = '';
+  screenText.style.opacity = '1';
+  
+  // Add a tiny delay to ensure DOM updates before rendering dots
+  setTimeout(() => {
+    renderDots(timeLeft);
+  }, 10);
   
   countdownInterval = setInterval(function() {
     timeLeft--;
