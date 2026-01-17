@@ -71,6 +71,7 @@ function requestGyroPermission() {
         if (state === 'granted') {
           window.addEventListener('deviceorientation', handleGyro);
           gyroEnabled = true;
+          console.log('Gyroscope enabled on iOS');
         } else {
           console.log('Gyroscope permission denied');
           setupMouseTilt(); // Fallback to mouse tilt
@@ -80,10 +81,15 @@ function requestGyroPermission() {
         console.log('Gyroscope permission error:', error);
         setupMouseTilt(); // Fallback to mouse tilt
       });
-  } else {
-    // Non-iOS devices
+  } else if ('DeviceOrientationEvent' in window) {
+    // Non-iOS devices that support gyroscope
     window.addEventListener('deviceorientation', handleGyro);
     gyroEnabled = true;
+    console.log('Gyroscope enabled on non-iOS');
+  } else {
+    // No gyroscope support
+    console.log('No gyroscope support detected');
+    setupMouseTilt();
   }
 }
 
@@ -121,6 +127,27 @@ function setupMouseTilt() {
   });
 
   device.addEventListener('mouseleave', function() {
+    targetX = 0;
+    targetY = 0;
+  });
+  
+  // Also add touch support for mobile fallback
+  device.addEventListener('touchmove', function(e) {
+    if (e.touches.length > 0) {
+      var rect = device.getBoundingClientRect();
+      var cx = rect.width / 2;
+      var cy = rect.height / 2;
+      
+      var touch = e.touches[0];
+      var relX = touch.clientX - rect.left - cx;
+      var relY = touch.clientY - rect.top - cy;
+      
+      targetX = (relY / cy) * -MAX_TILT;
+      targetY = (relX / cx) * MAX_TILT;
+    }
+  });
+  
+  device.addEventListener('touchend', function() {
     targetX = 0;
     targetY = 0;
   });
@@ -307,6 +334,11 @@ rpsButtons.forEach(function(b) {
 });
 
 startButton.addEventListener('click', function() {
+  // Request gyro permission when start is clicked (user gesture required on iOS)
+  if (!gyroEnabled) {
+    requestGyroPermission();
+  }
+  
   if (gameState === 'title') startRound();
 });
 
@@ -318,14 +350,11 @@ resetButton.addEventListener('click', function() {
    INITIALIZATION
    ====================== */
 
-// Start tilt animation loop
+// Start tilt animation loop immediately
 if (device) {
   tiltLoop();
   
-  // Request gyro permission on page load
-  requestGyroPermission();
-  
-  // Also setup mouse fallback immediately
+  // Setup mouse/touch fallback immediately
   setupMouseTilt();
 }
 
