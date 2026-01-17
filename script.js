@@ -1,35 +1,74 @@
 /* ======================
-   DOM REFERENCES & SETUP
+   DOM REFERENCES
    ====================== */
+
 var screenText = document.querySelector('.screen-text');
 var rpsButtons = document.querySelectorAll('.btn');
 var startButton = document.querySelector('.btn-start');
 var resetButton = document.querySelector('.btn-reset');
 var device = document.querySelector('.device');
+
 var titleCanvas = document.getElementById('titleCanvas');
 var ctx = titleCanvas.getContext('2d');
+
+/* Canvas size */
 titleCanvas.width = 160;
 titleCanvas.height = 36;
+
+/* ======================
+   GAME CONFIG
+   ====================== */
 
 var COUNTDOWN_SPEED = 600;
 var ROUND_PAUSE = 1200;
 var moves = ['rock', 'paper', 'scissors'];
 
-var gameState = 'title', timeLeft = 3, playerMove = null;
-var countdownInterval, blinkInterval, animId, t = 0;
+/* ======================
+   STATE
+   ====================== */
+
+var gameState = 'title';
+var timeLeft = 3;
+var playerMove = null;
+var countdownInterval = null;
+var blinkInterval = null;
+var animId = null;
+var t = 0;
 
 /* ======================
-   TITLE RENDERING
+   UTILS
    ====================== */
+
+function clearTimers() {
+  clearInterval(countdownInterval);
+  clearInterval(blinkInterval);
+  cancelAnimationFrame(animId);
+}
+
+function setRPSButtons(enabled) {
+  rpsButtons.forEach(function(b) {
+    b.style.pointerEvents = enabled ? 'auto' : 'none';
+  });
+}
+
+/* ======================
+   TITLE CANVAS
+   ====================== */
+
 var buffer = document.createElement('canvas');
 var bctx = buffer.getContext('2d');
 buffer.width = titleCanvas.width;
 buffer.height = titleCanvas.height;
 
+function rand(seed) {
+  return Math.sin(seed * 999) * 10000 % 1;
+}
+
 function drawTitleText() {
   bctx.clearRect(0, 0, buffer.width, buffer.height);
   bctx.fillStyle = '#121e12';
-  bctx.font = '900 20px "Archivo Black", sans-serif'; 
+  // Use Archivo Black for mobile consistency
+  bctx.font = '900 20px "Archivo Black", sans-serif';
   bctx.textBaseline = 'middle';
   bctx.textAlign = 'center';
   bctx.fillText("WHO'S RYAN", buffer.width / 2, buffer.height / 2);
@@ -37,111 +76,209 @@ function drawTitleText() {
 
 function drawTitle() {
   ctx.clearRect(0, 0, titleCanvas.width, titleCanvas.height);
-  var sweep = (Math.cos(t * 0.6) * -0.5 + 0.5) * (titleCanvas.width + 80) - 40;
-  for (var x = 0; x < titleCanvas.width; x += 3) {
-    var dist = Math.abs(x - sweep), yOffset = 0;
-    if (dist < 50) {
-      yOffset = (Math.random() - 0.5) * (1 - dist / 50) * 6;
+
+  var slice = 3;
+  var breakWidth = 50;
+  var margin = 40;
+
+  var sweep = (Math.cos(t * 0.6) * -0.5 + 0.5) * (titleCanvas.width + margin * 2) - margin;
+
+  for (var x = 0; x < titleCanvas.width; x += slice) {
+    var dist = Math.abs(x - sweep);
+    var yOffset = 0;
+
+    if (dist < breakWidth) {
+      var strength = 1 - dist / breakWidth;
+      var step = Math.floor((x + t * 40) / 10);
+      var noise = rand(step);
+
+      yOffset = (noise - 0.5) * strength * 6;
+      yOffset += Math.sin(t * 0.8) * 0.6;
     }
-    ctx.drawImage(buffer, x, 0, 3, buffer.height, x, yOffset, 3, buffer.height);
+
+    ctx.drawImage(
+      buffer,
+      x, 0, slice, buffer.height,
+      x, yOffset,
+      slice, buffer.height
+    );
   }
+
   t += 0.04;
   animId = requestAnimationFrame(drawTitle);
 }
 
 /* ======================
-   GAME LOGIC
+   TITLE SCREEN
    ====================== */
-function renderDots(n) {
-  // Clear ALL content completely
-  screenText.innerHTML = '';
-  screenText.style.opacity = '1';
-  
-  var dots = (n >= 1 ? '● ' : '○ ') + (n >= 2 ? '● ' : '○ ') + (n >= 3 ? '●' : '○');
-  screenText.textContent = dots;
-}
 
 function showTitleScreen() {
-  clearInterval(countdownInterval);
-  clearInterval(blinkInterval);
-  cancelAnimationFrame(animId);
+  clearTimers();
   gameState = 'title';
+  setRPSButtons(false);
+
   titleCanvas.style.display = 'block';
   drawTitleText();
   drawTitle();
-  screenText.innerHTML = "Rock Paper Scissors!<br><br><span class='blink'>Press Start</span>";
+
+  screenText.innerHTML = "Rock Paper Scissors!<br><br>" +
+    "<span class='blink'>Press Start</span>";
+
   blinkInterval = setInterval(function() {
     var el = document.querySelector('.blink');
-    if (el) el.style.visibility = el.style.visibility === 'hidden' ? 'visible' : 'hidden';
+    if (el) {
+      el.style.visibility = el.style.visibility === 'hidden' ? 'visible' : 'hidden';
+    }
   }, 800);
 }
 
+/* ======================
+   GAME FLOW
+   ====================== */
+
+function renderDots(n) {
+  // Use innerHTML to clear out previous result tags
+  screenText.innerHTML = 
+    (n >= 1 ? '● ' : '○ ') +
+    (n >= 2 ? '● ' : '○ ') +
+    (n >= 3 ? '●' : '○');
+}
+
 function startRound() {
-  clearInterval(blinkInterval);
-  cancelAnimationFrame(animId);
+  clearTimers();
   gameState = 'countdown';
   timeLeft = 3;
   playerMove = null;
+
   titleCanvas.style.display = 'none';
-  
-  // Clear the screen completely
-  screenText.innerHTML = '';
-  screenText.style.opacity = '1';
-  
-  // Add a tiny delay to ensure DOM updates before rendering dots
-  setTimeout(() => {
-    renderDots(timeLeft);
-  }, 10);
-  
+  setRPSButtons(true);
+  renderDots(timeLeft);
+
   countdownInterval = setInterval(function() {
     timeLeft--;
     renderDots(timeLeft);
-    if (window.soundController) window.soundController.playTickSound();
     
-    if (timeLeft === 0) {
-      clearInterval(countdownInterval);
-      if (!playerMove) {
-        screenText.innerHTML = 'FORFEIT';
-        setTimeout(startRound, ROUND_PAUSE);
-      } else {
-        resolveRound(playerMove);
-      }
+    if (window.soundController && window.soundController.playTickSound) {
+      window.soundController.playTickSound();
     }
+    
+    if (timeLeft === 0) endCountdown();
   }, COUNTDOWN_SPEED);
+}
+
+function endCountdown() {
+  clearInterval(countdownInterval);
+  setRPSButtons(false);
+
+  if (!playerMove) {
+    screenText.innerHTML = 'FORFEIT';
+    setTimeout(startRound, ROUND_PAUSE);
+  } else {
+    resolveRound(playerMove);
+  }
 }
 
 function resolveRound(move) {
   var cpu = moves[Math.floor(Math.random() * moves.length)];
-  var resultHTML = "";
-  
-  if (move === cpu) resultHTML = '□<br>DRAW';
-  else if ((move === 'rock' && cpu === 'scissors') || 
-           (move === 'paper' && cpu === 'rock') || 
-           (move === 'scissors' && cpu === 'paper')) {
-    resultHTML = '○<br>WIN';
-  } else {
-    resultHTML = '✕<br>LOSE';
+  var result = 'draw';
+
+  if (
+    (move === 'rock' && cpu === 'scissors') ||
+    (move === 'paper' && cpu === 'rock') ||
+    (move === 'scissors' && cpu === 'paper')
+  ) {
+    result = 'win';
+  } else if (move !== cpu) {
+    result = 'lose';
   }
-  
-  screenText.innerHTML = resultHTML;
+
+  if (result === 'win') {
+    screenText.innerHTML = '○<br>WIN';
+  } else if (result === 'lose') {
+    screenText.innerHTML = '✕<br>LOSE';
+  } else {
+    screenText.innerHTML = '□<br>DRAW';
+  }
+
   setTimeout(startRound, ROUND_PAUSE);
 }
 
 /* ======================
-   CONTROLS & INIT
+   INPUT
    ====================== */
+
 rpsButtons.forEach(function(b) {
   b.addEventListener('click', function() {
-    if (gameState === 'countdown' && !playerMove) {
-        playerMove = b.dataset.move;
-        screenText.innerHTML = "WAITING...";
-    }
+    if (gameState !== 'countdown' || playerMove) return;
+    playerMove = b.dataset.move;
+    setRPSButtons(false);
+    screenText.innerHTML = "WAITING...";
   });
 });
 
-startButton.addEventListener('click', function() { if (gameState === 'title') startRound(); });
-resetButton.addEventListener('click', showTitleScreen);
+startButton.addEventListener('click', function() {
+  // Initialize Gyro permissions on first click for iOS
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(function(state) {
+      if (state === 'granted') window.addEventListener('deviceorientation', handleGyro);
+    });
+  } else {
+    window.addEventListener('deviceorientation', handleGyro);
+  }
 
+  if (gameState === 'title') startRound();
+});
+
+resetButton.addEventListener('click', function() {
+  showTitleScreen();
+});
+
+/* ======================
+   TILT & GYRO EFFECT
+   ====================== */
+
+var MAX_TILT = 6;
+var targetX = 0, targetY = 0;
+var currentX = 0, currentY = 0;
+
+function tiltLoop() {
+  currentX += (targetX - currentX) * 0.08;
+  currentY += (targetY - currentY) * 0.08;
+  device.style.transform = 'rotateX(' + currentX + 'deg) rotateY(' + currentY + 'deg)';
+  requestAnimationFrame(tiltLoop);
+}
+
+function handleGyro(e) {
+  // beta: front back (-180, 180), gamma: left right (-90, 90)
+  // We divide by 10 to normalize the tilt sensitivity
+  targetX = (e.beta / 10) * -1; 
+  targetY = (e.gamma / 10);
+  
+  // Clamp to MAX_TILT
+  targetX = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetX));
+  targetY = Math.max(-MAX_TILT, Math.min(MAX_TILT, targetY));
+}
+
+if (device) {
+  tiltLoop();
+
+  device.addEventListener('mousemove', function(e) {
+    var rect = device.getBoundingClientRect();
+    var cx = rect.width / 2, cy = rect.height / 2;
+    targetX = ((e.clientY - rect.top - cy) / cy) * -MAX_TILT;
+    targetY = ((e.clientX - rect.left - cx) / cx) * MAX_TILT;
+  });
+
+  device.addEventListener('mouseleave', function() {
+    targetX = 0; targetY = 0;
+  });
+}
+
+/* ======================
+   INITIALIZATION
+   ====================== */
+
+// Wait for fonts to load before showing title
 if (document.fonts) {
   document.fonts.load('1em "Archivo Black"').then(showTitleScreen);
 } else {
