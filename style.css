@@ -5,6 +5,8 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  /* Prevent scrolling on mobile when interacting */
+  overflow: hidden; 
 }
 
 /* Perspective (ONE place only) */
@@ -55,7 +57,7 @@ body {
   transform: translateZ(18px);
   backface-visibility: hidden;
 
-  /* ✅ LCD BASE (NOT TRANSPARENT) */
+  /* LCD BASE (NOT TRANSPARENT) */
   background: rgba(143, 164, 122, 0);
 
   /* Shine vars */
@@ -146,7 +148,7 @@ body {
 }
 
 /* =========================
-   BUTTONS (INVISIBLE)
+   BUTTONS
    ========================= */
 
 button {
@@ -155,6 +157,8 @@ button {
   border: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  /* FIX 2: Better touch response */
+  touch-action: manipulation; 
 }
 
 /* RPS buttons */
@@ -201,4 +205,19 @@ button:focus,
 button:active {
   outline: none;
   box-shadow: none;
+}
+
+/* =========================
+   FIX 3: MOBILE RESIZING
+   ========================= */
+@media (max-width: 380px) {
+  .device-wrapper {
+    /* Shrink the whole game to fit small phone screens */
+    transform: scale(0.85); 
+  }
+}
+@media (max-height: 600px) {
+  .device-wrapper {
+    transform: scale(0.80);
+  }
 }

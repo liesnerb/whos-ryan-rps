@@ -1,230 +1,134 @@
 /* ======================
-   SOUND CONTROLLER
+   WEB AUDIO API CONTROLLER (Low Latency)
    ====================== */
 
-const sndClick = document.getElementById('snd-click');
-const sndTick = document.getElementById('snd-tick');
-const sndResult = document.getElementById('snd-result');
-
+const audioContextClass = window.AudioContext || window.webkitAudioContext;
+let audioCtx = new audioContextClass();
+let buffers = {};
 let audioUnlocked = false;
-let audioContext = null;
-let unlockCallbacks = [];
+
+// Map the ID of your audio tags to the actual file paths
+const soundManifest = {
+  'snd-click': 'sounds/click.mp3',
+  'snd-tick': 'sounds/tick.mp3',
+  'snd-result': 'sounds/result.mp3'
+};
 
 /* ======================
-   AUDIO UNLOCK
+   LOADER
    ====================== */
+
+async function preloadSounds() {
+  for (const [id, url] of Object.entries(soundManifest)) {
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+      buffers[id] = audioBuffer;
+    } catch (e) {
+      console.error("Error loading sound:", url, e);
+    }
+  }
+}
+
+// Start loading immediately
+preloadSounds();
+
+/* ======================
+   PLAYBACK ENGINE
+   ====================== */
+
+function playSound(elementOrId, volume = 1, rate = 1) {
+  // Resume context if suspended (browser requirement)
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  // Handle if 'elementOrId' is a DOM element (passed by script.js) or a string ID
+  let id = typeof elementOrId === 'string' ? elementOrId : elementOrId.id;
+
+  const buffer = buffers[id];
+  if (!buffer) return;
+
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.playbackRate.value = rate;
+
+  const gainNode = audioCtx.createGain();
+  gainNode.gain.value = volume;
+
+  source.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  source.start(0);
+}
 
 function unlockAudio() {
   if (audioUnlocked) return;
-  
-  // Create and resume AudioContext if needed (with compatibility check)
-  if (!audioContext) {
-    // Check if AudioContext is available
-    if (window.AudioContext || window.webkitAudioContext) {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      try {
-        audioContext = new AudioContextClass();
-      } catch (e) {
-        console.log("AudioContext creation failed:", e);
-      }
-    }
-  }
-  
-  // Try to resume AudioContext if it exists and is suspended
-  if (audioContext) {
-    if (audioContext.state === 'suspended') {
-      audioContext.resume().catch(function(e) {
-        console.log("AudioContext resume failed:", e);
-      });
-    }
-  }
-  
-  // Play/pause all audio elements to unlock them
-  const sounds = document.querySelectorAll('audio');
-  const promises = [];
-  
-  sounds.forEach(function(sound) {
-    try {
-      // Set volume very low for unlock
-      sound.volume = 0.01;
-      
-      // Play and immediately pause to unlock
-      const playPromise = sound.play();
-      
-      if (playPromise !== undefined) {
-        promises.push(playPromise.then(function() {
-          sound.pause();
-          sound.currentTime = 0;
-          sound.volume = 1;
-          return true;
-        }).catch(function() {
-          // Ignore errors during unlock
-          return false;
-        }));
-      }
-    } catch (e) {
-      // Ignore errors
-    }
-  });
-  
-  // Mark as unlocked once all promises resolve
-  Promise.all(promises).then(function() {
-    audioUnlocked = true;
-    
-    // Run any queued callbacks
-    unlockCallbacks.forEach(function(callback) {
-      callback();
-    });
-    unlockCallbacks = [];
-  });
+  // Play a silent buffer to unlock iOS audio engine
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const buffer = audioCtx.createBuffer(1, 1, 22050);
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start(0);
+  audioUnlocked = true;
 }
 
 /* ======================
-   PLAY HELPER
+   INTEGRATION & BINDINGS
    ====================== */
 
-function playSound(snd, volume, rate) {
-  if (!snd) return;
-  
-  // Default values if not provided
-  volume = volume || 0.025;
-  rate = rate || 1;
-  
-  // If audio isn't unlocked yet, queue the sound
-  if (!audioUnlocked) {
-    unlockCallbacks.push(function() {
-      playSound(snd, volume, rate);
-    });
-    unlockAudio();
-    return;
-  }
-  
-  // Reset and play
-  snd.currentTime = 0;
-  snd.volume = volume;
-  snd.playbackRate = rate;
-  
-  try {
-    const playPromise = snd.play();
-    
-    if (playPromise !== undefined) {
-      playPromise.catch(function(error) {
-        console.log("Audio play failed:", error);
-        // Try to unlock again on failure
-        audioUnlocked = false;
-        unlockCallbacks.push(function() {
-          playSound(snd, volume, rate);
-        });
-        unlockAudio();
-      });
-    }
-  } catch (e) {
-    console.log("Audio play exception:", e);
-  }
+function playTickSound() {
+  playSound('snd-tick', 0.15, 1);
 }
 
-/* ======================
-   EVENT HANDLERS
-   ====================== */
+// Bind unlock to initial user interaction
+['click', 'touchstart', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, unlockAudio, { once: true });
+});
 
-function handleStartClick() {
-  unlockAudio();
-  playSound(sndClick, 0.002, 1);
-}
-
-function handleRPSClick() {
-  unlockAudio();
-  playSound(sndClick, 0.9, 1.5);
-}
-
-function handleResultSound() {
-  unlockAudio();
-  playSound(sndResult, 0.02, 1);
-}
-
-/* ======================
-   BIND EVENTS
-   ====================== */
-
-// Bind audio unlock to ALL interactive elements
-function bindAudioUnlock() {
-  function unlockHandler() {
-    unlockAudio();
-    // Remove listeners after first successful unlock
-    document.removeEventListener('click', unlockHandler);
-    document.removeEventListener('touchstart', unlockHandler);
-    document.removeEventListener('keydown', unlockHandler);
-  }
-  
-  document.addEventListener('click', unlockHandler);
-  document.addEventListener('touchstart', unlockHandler);
-  document.addEventListener('keydown', unlockHandler);
-}
-
-// Bind specific sound handlers
-function bindSoundHandlers() {
-  const startBtn = document.querySelector('.btn-start');
-  if (startBtn) {
-    startBtn.addEventListener('click', handleStartClick);
-  }
-
-  const rpsBtns = document.querySelectorAll('.btn');
-  rpsBtns.forEach(function(btn) {
-    btn.addEventListener('click', handleRPSClick);
-  });
-}
-
-/* ======================
-   OBSERVE SCREEN TEXT FOR RESULTS
-   ====================== */
-
+// Setup Result Observer (Detects Win/Lose text)
 function setupResultObserver() {
   const screenText = document.querySelector('.screen-text');
-
   if (screenText && window.MutationObserver) {
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(m) {
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(() => {
         const txt = screenText.textContent;
-        if (txt.indexOf('WIN') !== -1 || txt.indexOf('LOSE') !== -1 || txt.indexOf('DRAW') !== -1) {
-          handleResultSound();
+        // Check for game end states
+        if (txt.includes('WIN') || txt.includes('LOSE') || txt.includes('DRAW')) {
+          playSound('snd-result', 0.2, 1);
         }
       });
     });
-
-    observer.observe(screenText, {
-      childList: true,
-      subtree: true
-    });
+    observer.observe(screenText, { childList: true, subtree: true });
   }
 }
 
-// Also add tick sound function
-function playTickSound() {
-  unlockAudio();
-  playSound(sndTick, 0.05, 1);
-}
-
-/* ======================
-   INITIALIZATION
-   ====================== */
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    bindAudioUnlock();
-    bindSoundHandlers();
-    setupResultObserver();
-  });
-} else {
-  // DOM already loaded
-  bindAudioUnlock();
-  bindSoundHandlers();
+// Initialize listeners
+document.addEventListener('DOMContentLoaded', () => {
   setupResultObserver();
-}
+  
+  // Start Button Sound
+  const btnStart = document.querySelector('.btn-start');
+  if (btnStart) {
+    btnStart.addEventListener('click', () => playSound('snd-click', 0.2, 1));
+  }
 
-// Export for use in script.js if needed
+  // Reset Button Sound
+  const btnReset = document.querySelector('.btn-reset');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => playSound('snd-click', 0.2, 1));
+  }
+
+  // RPS Button Sounds
+  document.querySelectorAll('.btn').forEach(btn => {
+    btn.addEventListener('click', () => playSound('snd-click', 0.9, 1.5));
+  });
+});
+
+// Export to window so script.js can call it
 window.soundController = {
   playSound: playSound,
-  unlockAudio: unlockAudio,
-  playTickSound: playTickSound
+  playTickSound: playTickSound,
+  unlockAudio: unlockAudio
 };
