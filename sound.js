@@ -1,5 +1,5 @@
 /* ======================
-   WEB AUDIO API CONTROLLER
+   WEB AUDIO API CONTROLLER (MOBILE-SAFE)
    ====================== */
 const audioContextClass = window.AudioContext || window.webkitAudioContext;
 let audioCtx = new audioContextClass();
@@ -12,6 +12,9 @@ const soundManifest = {
   "snd-result": "sounds/result.mp3"
 };
 
+/* ======================
+   SOUND PRELOAD
+   ====================== */
 async function preloadSounds() {
   for (const [id, url] of Object.entries(soundManifest)) {
     try {
@@ -24,27 +27,29 @@ async function preloadSounds() {
     }
   }
 }
-preloadSounds();
 
+/* ======================
+   PLAY SOUND
+   ====================== */
 function playSound(id, volume = 1, rate = 1) {
-  // Always try to resume context first (mobile requirement)
+  // Always try to resume context first
   if (audioCtx.state === "suspended") {
-    audioCtx.resume().catch(e => console.log("Audio resume failed:", e));
+    audioCtx.resume().catch(e => console.warn("Audio resume failed:", e));
   }
-  
-  // Don't play if audio isn't unlocked on mobile
+
+  // Don't play if not unlocked on mobile
   if (!audioUnlocked && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
     return;
   }
-  
+
   const buffer = buffers[id];
   if (!buffer) return;
 
   try {
     const source = audioCtx.createBufferSource();
+    const gainNode = audioCtx.createGain();
     source.buffer = buffer;
     source.playbackRate.value = rate;
-    const gainNode = audioCtx.createGain();
     gainNode.gain.value = volume;
     source.connect(gainNode);
     gainNode.connect(audioCtx.destination);
@@ -54,33 +59,46 @@ function playSound(id, volume = 1, rate = 1) {
   }
 }
 
+/* ======================
+   UNLOCK AUDIO (MOBILE-FRIENDLY)
+   ====================== */
 function unlockAudio() {
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume().then(() => {
-      audioUnlocked = true;
-      console.log("Audio unlocked successfully");
-      
-      // Play a silent sound to fully unlock audio on mobile
-      const buffer = audioCtx.createBuffer(1, 1, 22050);
-      const source = audioCtx.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioCtx.destination);
-      source.start(0);
-    }).catch(e => {
-      console.log("Audio unlock failed:", e);
-    });
-  } else {
+  if (audioUnlocked) return;
+
+  try {
+    // Create and play a short silent buffer inside the user gesture
+    const buffer = audioCtx.createBuffer(1, 1, 22050);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+
+    // Try to resume context immediately
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().catch(err => console.warn("Audio resume failed:", err));
+    }
+
+    // Mark unlocked
     audioUnlocked = true;
+    console.log("✅ Audio unlocked successfully");
+
+    // Preload sounds after unlock (important for Android/iOS)
+    preloadSounds();
+  } catch (e) {
+    console.error("Audio unlock failed:", e);
   }
 }
 
-// Force unlock audio on first user interaction
+/* ======================
+   FORCE AUDIO UNLOCK
+   ====================== */
 function forceAudioUnlock() {
-  if (!audioUnlocked) {
-    unlockAudio();
-  }
+  if (!audioUnlocked) unlockAudio();
 }
 
+/* ======================
+   PUBLIC SOUND CONTROLLER
+   ====================== */
 window.soundController = {
   playCountdownTick: () => playSound("snd-tick", 0.15, 1),
   playForfeitSound: () => playSound("snd-tick", 0.2, 0.8),
@@ -88,12 +106,13 @@ window.soundController = {
   forceAudioUnlock: forceAudioUnlock
 };
 
-// Global click/touch sound bindings
+/* ======================
+   GLOBAL BINDINGS
+   ====================== */
 document.addEventListener("DOMContentLoaded", () => {
-  // Add audio unlock to ALL button clicks
+  // Unlock audio on first button press or touch
   document.querySelectorAll("button").forEach((btn) => {
     btn.addEventListener("click", () => {
-      // Force audio unlock on first click
       if (window.soundController) {
         window.soundController.forceAudioUnlock();
       }
@@ -101,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Setup Result Observer
+  // Observe results for "WIN / LOSE / DRAW"
   const screenText = document.querySelector(".screen-text");
   if (screenText && window.MutationObserver) {
     const observer = new MutationObserver(() => {
@@ -112,11 +131,13 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     observer.observe(screenText, { childList: true, subtree: true });
   }
-  
-  // Also unlock on touchstart for mobile
-  document.addEventListener("touchstart", () => {
-    if (window.soundController) {
-      window.soundController.forceAudioUnlock();
-    }
+
+  // Extra unlock hooks for iOS/Android
+  window.addEventListener("touchstart", () => {
+    if (!audioUnlocked) unlockAudio();
+  }, { once: true, passive: true });
+
+  window.addEventListener("click", () => {
+    if (!audioUnlocked) unlockAudio();
   }, { once: true });
 });
