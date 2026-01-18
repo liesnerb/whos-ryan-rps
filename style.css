@@ -1,19 +1,32 @@
 /* ============================================================
-   GLOBAL & LAYOUT
+   GLOBAL
    ============================================================ */
 body {
-  background: #bababa;
   margin: 0;
   height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+  background: black; /* fallback */
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
-  touch-action: none;
 }
 
+/* THREE.JS BACKGROUND */
+#bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+   DEVICE WRAPPER
+   ============================================================ */
 .device-wrapper {
   perspective: 1000px;
+  position: relative;
+  z-index: 10;
 }
 
 .device {
@@ -26,7 +39,7 @@ body {
 }
 
 /* ============================================================
-   DEVICE IMAGE LAYERS
+   IMAGE LAYERS
    ============================================================ */
 .layer {
   position: absolute;
@@ -36,31 +49,19 @@ body {
   backface-visibility: hidden;
 }
 
-.shell {
-  transform: translateZ(0);
-}
-.embossed {
-  transform: translateZ(6px);
-}
-.buttons {
-  transform: translateZ(10px);
-}
-.logo {
-  transform: translateZ(14px);
-}
-.rps {
-  transform: translateZ(15px);
-}
-.screen-art {
-  transform: translateZ(22px);
-}
+.shell { transform: translateZ(0); }
+.embossed { transform: translateZ(6px); }
+.buttons { transform: translateZ(10px); }
+.logo { transform: translateZ(14px); }
+.rps { transform: translateZ(15px); }
+.screen-art { transform: translateZ(22px); }
 .light {
   transform: translateZ(30px);
   opacity: 1;
 }
 
 /* ============================================================
-   LCD SCREEN WITH REACTIVE GLOSSY LIGHT STREAK
+   LCD SCREEN
    ============================================================ */
 .screen {
   position: absolute;
@@ -72,29 +73,21 @@ body {
   overflow: hidden;
   transform: translateZ(18px);
   background: rgba(143, 164, 122, 0.25);
-  transition:
-    filter 0.15s ease,
-    opacity 0.3s ease;
   z-index: 50;
-
-  /* Create a base for the glossy effect */
   box-shadow:
     inset 0 0 30px rgba(0, 0, 0, 0.4),
     inset 0 0 10px rgba(0, 0, 0, 0.3),
     0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Dynamic glossy light streak overlay (will be controlled by JS) */
+/* Gloss streak */
 .screen::before {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: 1;
   border-radius: 10px;
-  opacity: 0.3;
-
-  /* Default light streak position (center) */
+  pointer-events: none;
   background: linear-gradient(
     135deg,
     transparent 0%,
@@ -104,118 +97,87 @@ body {
     transparent 100%
   );
   background-size: 200% 200%;
-  background-position: 50% 50%;
-
-  /* Subtle animation for light shimmer */
-  animation: light-shimmer 3s ease-in-out infinite;
+  opacity: 0.3;
 }
 
-/* LCD screen "glass" overlay */
+/* Glass + pixel grid */
 .screen::after {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: 2;
   border-radius: 10px;
-
-  /* Glass reflection gradient */
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.08) 30%,
-    rgba(255, 255, 255, 0.02) 60%,
-    rgba(0, 0, 0, 0.05) 70%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
-
-  /* Pixel grid overlay */
-  background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-  background-size: 3px 3px;
+  pointer-events: none;
+  background-image:
+    radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.08) 30%,
+      rgba(255, 255, 255, 0.02) 60%,
+      rgba(0, 0, 0, 0.1) 100%
+    );
+  background-size: 3px 3px, 100% 100%;
   mix-blend-mode: overlay;
 }
 
-@keyframes light-shimmer {
-  0%,
-  100% {
-    opacity: 0.25;
-    background-size: 180% 180%;
-  }
-  50% {
-    opacity: 0.35;
-    background-size: 200% 200%;
-  }
-}
-
+/* Screen text */
 .screen-text {
   position: absolute;
   inset: 0;
-  z-index: 3; /* Above the glossy effects */
+  z-index: 3;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  text-align: center;
   font-family: monospace;
   font-size: 14px;
-  line-height: 1.4;
   letter-spacing: 2px;
   color: rgba(34, 49, 34, 0.57);
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-  white-space: pre-wrap;
 }
 
 /* ============================================================
-   COUNTDOWN CIRCLES
+   COUNTDOWN DOTS
    ============================================================ */
 .dots-container {
   display: flex;
   gap: 14px;
-  margin-top: 2px;
 }
 
 .dot {
   width: 10px;
   height: 10px;
   border: 2px solid rgba(34, 49, 34, 0.57);
-  border-radius: 58%;
-  display: inline-block;
+  border-radius: 50%;
 }
 
 .dot.filled {
-  background-color: rgba(34, 49, 34, 0.57);
+  background: rgba(34, 49, 34, 0.57);
 }
 
 /* ============================================================
-   CRT-STYLE HARD BLINK (NO FADE)
+   BLINK
    ============================================================ */
 .blink {
-  animation: blink-anim 1s steps(1) infinite;
+  animation: blink 1s steps(1) infinite;
 }
 
-@keyframes blink-anim {
-  0%,
-  49% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0;
-  }
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 
 /* ============================================================
-   INTERACTIVE BUTTONS
+   BUTTON HIT AREAS
    ============================================================ */
 button {
   position: absolute;
   background: transparent;
   border: none;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
   z-index: 100;
   transform: translateZ(40px);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-rock {
@@ -249,18 +211,15 @@ button {
   left: 190px;
 }
 
-button:active {
-  filter: brightness(1.4);
-}
-
 /* ============================================================
-   MOBILE RESPONSIVENESS
+   MOBILE SCALE
    ============================================================ */
 @media (max-width: 380px) {
   .device-wrapper {
     transform: scale(0.85);
   }
 }
+
 @media (max-height: 600px) {
   .device-wrapper {
     transform: scale(0.75);

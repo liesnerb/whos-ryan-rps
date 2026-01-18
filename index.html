@@ -2,39 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+  />
   <title>Who's Ryan – RPS</title>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+
+  <!-- Font -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<div class="device-wrapper">
-  <div class="device">
-    <img src="shell.png" class="layer shell" />
-    <img src="embossed.png" class="layer embossed" />
-    <img src="buttons.png" class="layer buttons" />
-    <img src="ryn.png" class="layer logo" />
+  <!-- THREE.JS PARTICLE BACKGROUND -->
+  <canvas id="bg"></canvas>
 
-    <div class="screen">
-      <canvas id="titleCanvas"></canvas>
-      <div class="screen-text">READY</div>
+  <!-- GAME DEVICE -->
+  <div class="device-wrapper">
+    <div class="device">
+
+      <img src="shell.png" class="layer shell" />
+      <img src="embossed.png" class="layer embossed" />
+      <img src="buttons.png" class="layer buttons" />
+      <img src="ryn.png" class="layer logo" />
+
+      <div class="screen">
+        <canvas id="titleCanvas"></canvas>
+        <div class="screen-text">READY</div>
+      </div>
+
+      <img src="screen.png" class="layer screen-art" />
+      <img src="rps.png" class="layer rps" />
+      <img src="light.png" class="layer light" />
+
+      <!-- Invisible hit areas -->
+      <button class="btn btn-rock" data-move="rock"></button>
+      <button class="btn btn-paper" data-move="paper"></button>
+      <button class="btn btn-scissors" data-move="scissors"></button>
+      <button class="btn-start"></button>
+      <button class="btn-reset"></button>
+
     </div>
-
-    <img src="screen.png" class="layer screen-art" />
-    <img src="rps.png" class="layer rps" />
-    <img src="light.png" class="layer light" />
-
-    <button class="btn btn-rock" data-move="rock"></button>
-    <button class="btn btn-paper" data-move="paper"></button>
-    <button class="btn btn-scissors" data-move="scissors"></button>
-    <button class="btn-start"></button>
-    <button class="btn-reset"></button>
   </div>
-</div>
 
-<script src="sound.js"></script>
-<script src="script.js"></script>
+  <!-- Libraries -->
+  <script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+
+  <!-- Background Particles -->
+  <script src="bg-particles.js"></script>
+
+  <!-- Game Logic -->
+  <script src="sound.js"></script>
+  <script src="script.js"></script>
 
 </body>
 </html>
