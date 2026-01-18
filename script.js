@@ -1,6 +1,6 @@
-/* ======================
+/* ============================================================
    DOM REFERENCES & SETUP
-   ====================== */
+   ============================================================ */
 var screenText = document.querySelector('.screen-text');
 var rpsButtons = document.querySelectorAll('.btn');
 var startButton = document.querySelector('.btn-start');
@@ -13,76 +13,77 @@ var device = document.querySelector('.device');
 titleCanvas.width = 160;
 titleCanvas.height = 36;
 
-// Game Config
-var COUNTDOWN_SPEED = 500; // Fast countdown
-var REVEAL_DELAY = 800;    // Wait 0.8s for suspense
-var ROUND_PAUSE = 1500;    // Break between rounds
+/* ============================================================
+   GAME CONFIG
+   ============================================================ */
+var COUNTDOWN_SPEED = 500;
+var REVEAL_DELAY = 800;
+var ROUND_PAUSE = 1500;
 var moves = ['rock', 'paper', 'scissors'];
 
 var gameState = 'title', timeLeft = 3, playerMove = null;
-var countdownInterval, animId, t = 0;
+var countdownInterval, animId, t = 0, roundTimeout;
 
-// 3D Parallax Variables
-var isDragging = false;
-var mouseX = 0, mouseY = 0;
+/* ============================================================
+   3D PARALLAX VARIABLES
+   ============================================================ */
 var rotateX = 0, rotateY = 0;
 var targetRotateX = 0, targetRotateY = 0;
-var lastMouseX = 0, lastMouseY = 0;
-
-// 3D Parallax Configuration
-var MAX_TILT = 8; // Reduced for less distortion
-var PARALLAX_FACTOR = 0.2; // How much layers shift
+var MAX_TILT = 8;
+var PARALLAX_FACTOR = 0.2;
 var SMOOTHING = 0.1;
 
-/* ======================
-   SIMPLE 3D PARALLAX SYSTEM
-   ====================== */
+/* ============================================================
+   3D PARALLAX SYSTEM (MOBILE + DESKTOP)
+   ============================================================ */
 function init3DParallax() {
-  // Mouse movement
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseleave', resetTilt);
-  
-  // Touch support
-  deviceWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
-  deviceWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
-  deviceWrapper.addEventListener('touchend', resetTilt);
-  
-  // Update parallax
+  const supportsPointer = window.PointerEvent;
+
+  if (supportsPointer) {
+    deviceWrapper.addEventListener('pointermove', handlePointerMove);
+    deviceWrapper.addEventListener('pointerleave', resetTilt);
+  } else {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', resetTilt);
+    deviceWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
+    deviceWrapper.addEventListener('touchend', resetTilt);
+  }
+
+  // Optional gyro tilt
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', function (event) {
+      const beta = event.beta || 0;
+      const gamma = event.gamma || 0;
+      targetRotateX = clamp(beta / 45, -1, 1) * MAX_TILT;
+      targetRotateY = clamp(gamma / 45, -1, 1) * MAX_TILT;
+    });
+  }
+
   requestAnimationFrame(updateParallax);
 }
 
-function handleMouseMove(e) {
-  if (!deviceWrapper) return;
-  
+function handlePointerMove(e) {
   var rect = deviceWrapper.getBoundingClientRect();
   var centerX = rect.left + rect.width / 2;
   var centerY = rect.top + rect.height / 2;
-  
-  // Calculate mouse position relative to center (-1 to 1)
   var normalizedX = (e.clientX - centerX) / (rect.width / 2);
   var normalizedY = (e.clientY - centerY) / (rect.height / 2);
-  
-  // Clamp and set target rotation
   targetRotateY = clamp(normalizedX, -1, 1) * MAX_TILT;
   targetRotateX = -clamp(normalizedY, -1, 1) * MAX_TILT;
 }
 
-function handleTouchStart(e) {
-  e.preventDefault();
+function handleMouseMove(e) {
+  handlePointerMove(e);
 }
 
 function handleTouchMove(e) {
   e.preventDefault();
-  if (!deviceWrapper) return;
-  
   var touch = e.touches[0];
   var rect = deviceWrapper.getBoundingClientRect();
   var centerX = rect.left + rect.width / 2;
   var centerY = rect.top + rect.height / 2;
-  
   var normalizedX = (touch.clientX - centerX) / (rect.width / 2);
   var normalizedY = (touch.clientY - centerY) / (rect.height / 2);
-  
   targetRotateY = clamp(normalizedX, -1, 1) * MAX_TILT;
   targetRotateX = -clamp(normalizedY, -1, 1) * MAX_TILT;
 }
@@ -96,36 +97,25 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-/* ======================
-   REACTIVE GLOSSY LIGHT STREAK
-   ====================== */
+/* ============================================================
+   REACTIVE SCREEN GLOSS
+   ============================================================ */
 function updateScreenGloss(rotateX, rotateY) {
   const screen = document.querySelector('.screen');
   if (!screen) return;
-  
-  // Calculate light streak position based on device rotation
-  // Map rotation values (degrees) to background position percentages
-  const maxRotation = 15; // Maximum expected rotation in degrees
-  
-  // Convert rotation to percentage (-100% to 100%)
+
+  const maxRotation = 15;
   let posX = (rotateY / maxRotation) * 100;
   let posY = (-rotateX / maxRotation) * 100;
-  
-  // Clamp values to -100% to 100%
+
   posX = Math.max(Math.min(posX, 100), -100);
   posY = Math.max(Math.min(posY, 100), -100);
-  
-  // Convert to CSS background position (0% to 100% scale)
+
   const cssPosX = 50 + (posX / 2);
   const cssPosY = 50 + (posY / 2);
-  
-  // Calculate light intensity based on angle
   const intensity = 0.3 + (Math.abs(rotateX) + Math.abs(rotateY)) * 0.01;
-  
-  // Calculate angle for gradient based on rotation
   const angle = 135 + (rotateY * 0.5);
-  
-  // Update the ::before pseudo-element's background
+
   const style = document.createElement('style');
   style.textContent = `
     .screen::before {
@@ -142,45 +132,36 @@ function updateScreenGloss(rotateX, rotateY) {
       opacity: ${0.2 + intensity * 0.3};
     }
   `;
-  
-  // Remove old style and add new one
   const oldStyle = document.getElementById('dynamic-gloss');
   if (oldStyle) oldStyle.remove();
   style.id = 'dynamic-gloss';
   document.head.appendChild(style);
 }
 
+/* ============================================================
+   PARALLAX UPDATE LOOP
+   ============================================================ */
 function updateParallax() {
-  // Smooth interpolation
   rotateX += (targetRotateX - rotateX) * SMOOTHING;
   rotateY += (targetRotateY - rotateY) * SMOOTHING;
-  
-  // Apply rotation to main device
+
   if (device) {
     device.style.transform = `
       rotateX(${rotateX}deg)
       rotateY(${rotateY}deg)
     `;
   }
-  
-  // Apply parallax to layers based on their depth
+
   applyLayerParallax();
-  
-  // Update the reactive screen gloss
   updateScreenGloss(rotateX, rotateY);
-  
   requestAnimationFrame(updateParallax);
 }
 
 function applyLayerParallax() {
-  // Get all layers
   var layers = document.querySelectorAll('.layer, .screen, button');
-  
-  layers.forEach(function(layer) {
-    // Calculate parallax offset based on depth
+  layers.forEach(function (layer) {
     var depth = 0;
-    
-    // Assign depth based on layer type
+
     if (layer.classList.contains('shell')) depth = 0;
     else if (layer.classList.contains('embossed')) depth = 6;
     else if (layer.classList.contains('buttons')) depth = 10;
@@ -190,21 +171,19 @@ function applyLayerParallax() {
     else if (layer.classList.contains('light')) depth = 30;
     else if (layer.classList.contains('screen')) depth = 18;
     else if (layer.tagName === 'BUTTON') depth = 40;
-    
-    // Calculate parallax offset based on depth
+
     var parallaxMultiplier = depth / 100;
     var offsetX = rotateY * parallaxMultiplier * PARALLAX_FACTOR * 10;
     var offsetY = -rotateX * parallaxMultiplier * PARALLAX_FACTOR * 10;
-    
-    // Apply transform with base Z translation
     var baseZ = depth + 'px';
+
     layer.style.transform = `translate3d(${offsetX}px, ${offsetY}px, ${baseZ})`;
   });
 }
 
-/* ======================
-   TITLE RENDERING (Preserved Animation)
-   ====================== */
+/* ============================================================
+   TITLE RENDERING
+   ============================================================ */
 var buffer = document.createElement('canvas');
 var bctx = buffer.getContext('2d');
 buffer.width = titleCanvas.width;
@@ -213,7 +192,7 @@ buffer.height = titleCanvas.height;
 function drawTitleText() {
   bctx.clearRect(0, 0, buffer.width, buffer.height);
   bctx.fillStyle = '#121e12';
-  bctx.font = '900 20px "Archivo Black", sans-serif'; 
+  bctx.font = '900 20px "Archivo Black", sans-serif';
   bctx.textBaseline = 'middle';
   bctx.textAlign = 'center';
   bctx.fillText("WHO'S RYAN", buffer.width / 2, buffer.height / 2);
@@ -233,26 +212,20 @@ function drawTitle() {
   animId = requestAnimationFrame(drawTitle);
 }
 
-/* ======================
+/* ============================================================
    GAME LOGIC
-   ====================== */
-
+   ============================================================ */
 function renderDots(n) {
-  // Clear any existing content
-  screenText.innerHTML = ''; 
-  
-  // Create a container for the circles
+  screenText.innerHTML = '';
   var container = document.createElement('div');
   container.className = 'dots-container';
-  
   for (var i = 1; i <= 3; i++) {
     var dot = document.createElement('span');
     dot.className = 'dot' + (i <= n ? ' filled' : '');
     container.appendChild(dot);
   }
   screenText.appendChild(container);
-  
-  // Play tick sound whenever dots update (except when showing 3 dots initially)
+
   if (n < 3 && window.soundController) {
     window.soundController.playCountdownTick();
   }
@@ -261,6 +234,7 @@ function renderDots(n) {
 function showTitleScreen() {
   clearInterval(countdownInterval);
   cancelAnimationFrame(animId);
+  clearTimeout(roundTimeout); // ✅ Prevent leftover game restart
   gameState = 'title';
   titleCanvas.style.display = 'block';
   screenText.innerHTML = "<span class='blink'>PRESS START</span>";
@@ -269,27 +243,23 @@ function showTitleScreen() {
 }
 
 function startRound() {
-  cancelAnimationFrame(animId); // Stop title animation
+  cancelAnimationFrame(animId);
   gameState = 'countdown';
   timeLeft = 3;
   playerMove = null;
   titleCanvas.style.display = 'none';
-  
-  renderDots(timeLeft); // Initial render (no sound for 3 dots)
-  
-  countdownInterval = setInterval(function() {
+  renderDots(timeLeft);
+  countdownInterval = setInterval(function () {
     timeLeft--;
-    renderDots(timeLeft); // This will play tick sound
-    
+    renderDots(timeLeft);
     if (timeLeft <= 0) {
       clearInterval(countdownInterval);
       if (!playerMove) {
         screenText.innerHTML = 'FORFEIT';
-        // Play forfeit sound
         if (window.soundController) {
           window.soundController.playForfeitSound();
         }
-        setTimeout(startRound, ROUND_PAUSE);
+        roundTimeout = setTimeout(startRound, ROUND_PAUSE); // ✅ stored timeout
       }
     }
   }, COUNTDOWN_SPEED);
@@ -297,14 +267,10 @@ function startRound() {
 
 function playRound(move) {
   if (gameState !== 'countdown' || playerMove || timeLeft <= 0) return;
-  
   playerMove = move;
   clearInterval(countdownInterval);
-  
-  // Suspend phase: Clear circles and show waiting
-  screenText.innerHTML = '...'; 
-
-  setTimeout(function() {
+  screenText.innerHTML = '...';
+  setTimeout(function () {
     resolveRound(playerMove);
   }, REVEAL_DELAY);
 }
@@ -312,32 +278,29 @@ function playRound(move) {
 function resolveRound(move) {
   var cpu = moves[Math.floor(Math.random() * moves.length)];
   var result = "";
-  
   if (move === cpu) result = 'DRAW';
-  else if ((move === 'rock' && cpu === 'scissors') || 
-           (move === 'paper' && cpu === 'rock') || 
+  else if ((move === 'rock' && cpu === 'scissors') ||
+           (move === 'paper' && cpu === 'rock') ||
            (move === 'scissors' && cpu === 'paper')) {
     result = 'WIN';
   } else {
     result = 'LOSE';
   }
-  
   screenText.innerHTML = result;
-  setTimeout(startRound, ROUND_PAUSE);
+  roundTimeout = setTimeout(startRound, ROUND_PAUSE); // ✅ stored timeout
 }
 
-/* ======================
+/* ============================================================
    CONTROLS & INIT
-   ====================== */
-rpsButtons.forEach(function(b) {
-  b.addEventListener('click', function() {
+   ============================================================ */
+rpsButtons.forEach(function (b) {
+  b.addEventListener('click', function () {
     if (b.dataset.move) playRound(b.dataset.move);
   });
 });
 
-startButton.addEventListener('click', function() { 
+startButton.addEventListener('click', function () {
   if (gameState === 'title') {
-    // Ensure audio is unlocked before starting
     if (window.soundController) {
       window.soundController.unlockAudio();
     }
@@ -347,19 +310,19 @@ startButton.addEventListener('click', function() {
 
 resetButton.addEventListener('click', showTitleScreen);
 
-// Initialize everything
+/* ============================================================
+   INIT
+   ============================================================ */
 function initGame() {
-  // Start 3D parallax system
   init3DParallax();
-  
-  // Start title screen
+
   if (document.fonts) {
     document.fonts.load('1em "Archivo Black"').then(showTitleScreen);
   } else {
     showTitleScreen();
   }
-  
-  console.log("Game initialized with 3D parallax and reactive screen gloss");
+
+  console.log("Game initialized with mobile-ready 3D parallax + fixed reset behavior.");
 }
 
 window.addEventListener('DOMContentLoaded', initGame);
