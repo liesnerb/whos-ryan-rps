@@ -8,26 +8,26 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  /* Prevent scrolling and accidental zooming on mobile */
   overflow: hidden;
-  touch-action: none; 
+  touch-action: none;
 }
 
-/* Perspective Container */
 .device-wrapper {
   perspective: 1000px;
 }
 
-/* Main Device Container */
 .device {
   position: relative;
   width: 360px;
   height: 560px;
   transform-style: preserve-3d;
   will-change: transform;
+  transition: transform 0.15s ease-out;
 }
 
-/* All PNG Layers */
+/* ============================================================
+   DEVICE IMAGE LAYERS
+   ============================================================ */
 .layer {
   position: absolute;
   inset: 0;
@@ -36,17 +36,16 @@ body {
   backface-visibility: hidden;
 }
 
-/* Depth Stack (Z-axis) */
 .shell      { transform: translateZ(0); }
 .embossed   { transform: translateZ(6px); }
 .buttons    { transform: translateZ(10px); }
 .logo       { transform: translateZ(14px); }
-.screen-art { transform: translateZ(22px); }
 .rps        { transform: translateZ(15px); }
+.screen-art { transform: translateZ(22px); }
 .light      { transform: translateZ(30px); opacity: 1; }
 
 /* ============================================================
-   LCD SCREEN & TEXT
+   LCD SCREEN WITH REACTIVE GLOSSY LIGHT STREAK
    ============================================================ */
 .screen {
   position: absolute;
@@ -55,57 +54,139 @@ body {
   width: 160px;
   height: 120px;
   border-radius: 10px;
-  
-  /* FIX: overflow hidden prevents "ghost" text from previous rounds showing */
-  overflow: hidden; 
-  
+  overflow: hidden;
   transform: translateZ(18px);
-  background: rgba(143, 164, 122, 0); 
+  background: rgba(143, 164, 122, 0.25);
   transition: filter 0.15s ease, opacity 0.3s ease;
+  z-index: 50;
   
-  --shine-x: 50%;
-  --shine-y: 50%;
-  --shine-opacity: .2;
+  /* Create a base for the glossy effect */
+  box-shadow: 
+    inset 0 0 30px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(0, 0, 0, 0.3),
+    0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Glass glare overlay */
+/* Dynamic glossy light streak overlay (will be controlled by JS) */
 .screen::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse at 50% 18%, rgba(255,255,255,0.18), rgba(255,255,255,0.06) 40%, transparent 65%),
-    linear-gradient(to bottom, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.10));
-  opacity: 0.7;
+  z-index: 1;
+  border-radius: 10px;
+  opacity: 0.3;
+  
+  /* Default light streak position (center) */
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.25) 80%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  background-position: 50% 50%;
+  
+  /* Subtle animation for light shimmer */
+  animation: light-shimmer 3s ease-in-out infinite;
+}
+
+/* LCD screen "glass" overlay */
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  border-radius: 10px;
+  
+  /* Glass reflection gradient */
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.02) 60%,
+    rgba(0, 0, 0, 0.05) 70%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  
+  /* Pixel grid overlay */
+  background-image: 
+    radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: overlay;
+}
+
+@keyframes light-shimmer {
+  0%, 100% {
+    opacity: 0.25;
+    background-size: 180% 180%;
+  }
+  50% {
+    opacity: 0.35;
+    background-size: 200% 200%;
+  }
 }
 
 .screen-text {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 80%;
-  
-  /* FIX: Flexbox ensures dots and text are centered and don't overlap lines */
+  position: absolute;
+  inset: 0;
+  z-index: 3; /* Above the glossy effects */
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  
   text-align: center;
   font-family: monospace;
   font-size: 14px;
   line-height: 1.4;
   letter-spacing: 2px;
-  color: #121e12;
-  text-shadow: 1px 47 rgba(0,0,0,0.15);
-  
-  /* Prevents text from sticking to old positions */
+  color: rgba(34, 49, 34, 0.57);
+  text-shadow: 0 1px 1px rgba(0,0,0,0.25);
   white-space: pre-wrap;
 }
 
 /* ============================================================
-   INTERACTIVE BUTTONS (Hit-Areas)
+   COUNTDOWN CIRCLES
+   ============================================================ */
+.dots-container {
+  display: flex;
+  gap: 14px;
+  margin-top: 2px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(34, 49, 34, 0.57);
+  border-radius: 58%;
+  display: inline-block;
+}
+
+.dot.filled {
+  background-color: rgba(34, 49, 34, 0.57);
+}
+
+/* ============================================================
+   CRT-STYLE HARD BLINK (NO FADE)
+   ============================================================ */
+.blink {
+  animation: blink-anim 1s steps(1) infinite;
+}
+
+@keyframes blink-anim {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   INTERACTIVE BUTTONS
    ============================================================ */
 button {
   position: absolute;
@@ -118,65 +199,16 @@ button {
   transform: translateZ(40px);
 }
 
-/* Rock Button */
-.btn-rock {
-  width: 44px;
-  height: 42px;
-  top: 358px;
-  left: 75px;
-}
+.btn-rock     { width: 44px; height: 42px; top: 358px; left: 75px; }
+.btn-paper    { width: 44px; height: 42px; top: 394px; left: 159px; }
+.btn-scissors { width: 44px; height: 42px; top: 357px; left: 244px; }
+.btn-start    { width: 60px; height: 45px; top: 290px; left: 110px; }
+.btn-reset    { width: 60px; height: 45px; top: 290px; left: 190px; }
 
-/* Paper Button */
-.btn-paper {
-  width: 44px;
-  height: 42px;
-  top: 394px;
-  left: 159px;
-}
-
-/* Scissors Button */
-.btn-scissors {
-  width: 44px;
-  height: 42px;
-  top: 357px;
-  left: 244px;
-}
-
-/* Start Button */
-.btn-start {
-  width: 60px;
-  height: 45px;
-  top: 290px;
-  left: 110px;
-}
-
-/* Reset Button */
-.btn-reset {
-  width: 60px;
-  height: 45px;
-  top: 290px;
-  left: 190px;
-}
-
-/* Visual Feedback */
-button:active {
-  filter: brightness(1.4);
-}
+button:active { filter: brightness(1.4); }
 
 /* ============================================================
    MOBILE RESPONSIVENESS
    ============================================================ */
-
-/* Scale device down for narrow screens (iPhone SE, etc) */
-@media (max-width: 380px) {
-  .device-wrapper {
-    transform: scale(0.85);
-  }
-}
-
-/* Scale device down for short screens */
-@media (max-height: 600px) {
-  .device-wrapper {
-    transform: scale(0.75);
-  }
-}
+@media (max-width: 380px) { .device-wrapper { transform: scale(0.85); } }
+@media (max-height: 600px) { .device-wrapper { transform: scale(0.75); } }

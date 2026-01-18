@@ -25,6 +25,7 @@ async function preloadSounds() {
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
       buffers[id] = audioBuffer;
+      console.log(`Loaded sound: ${id}`);
     } catch (e) {
       console.error("Error loading sound:", url, e);
     }
@@ -48,7 +49,10 @@ function playSound(elementOrId, volume = 1, rate = 1) {
   let id = typeof elementOrId === 'string' ? elementOrId : elementOrId.id;
 
   const buffer = buffers[id];
-  if (!buffer) return;
+  if (!buffer) {
+    console.warn(`Sound not loaded: ${id}`);
+    return;
+  }
 
   const source = audioCtx.createBufferSource();
   source.buffer = buffer;
@@ -72,15 +76,28 @@ function unlockAudio() {
   source.connect(audioCtx.destination);
   source.start(0);
   audioUnlocked = true;
+  console.log("Audio unlocked");
 }
 
 /* ======================
-   INTEGRATION & BINDINGS
+   GAME-SPECIFIC SOUND FUNCTIONS
    ====================== */
 
 function playTickSound() {
   playSound('snd-tick', 0.15, 1);
 }
+
+function playCountdownTick() {
+  playSound('snd-tick', 0.15, 1);
+}
+
+function playForfeitSound() {
+  playSound('snd-tick', 0.2, 0.8); // Slightly lower pitch for forfeit
+}
+
+/* ======================
+   INTEGRATION & BINDINGS
+   ====================== */
 
 // Bind unlock to initial user interaction
 ['click', 'touchstart', 'keydown'].forEach(evt => {
@@ -122,7 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // RPS Button Sounds
   document.querySelectorAll('.btn').forEach(btn => {
-    btn.addEventListener('click', () => playSound('snd-click', 0.9, 1.5));
+    if (btn.dataset.move) { // Only RPS buttons have data-move
+      btn.addEventListener('click', () => playSound('snd-click', 0.9, 1.5));
+    }
   });
 });
 
@@ -130,5 +149,9 @@ document.addEventListener('DOMContentLoaded', () => {
 window.soundController = {
   playSound: playSound,
   playTickSound: playTickSound,
+  playCountdownTick: playCountdownTick,
+  playForfeitSound: playForfeitSound,
   unlockAudio: unlockAudio
 };
+
+console.log("Sound controller initialized");
