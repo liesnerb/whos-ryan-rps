@@ -27,40 +27,78 @@ async function preloadSounds() {
 preloadSounds();
 
 function playSound(id, volume = 1, rate = 1) {
-  if (audioCtx.state === "suspended") audioCtx.resume(); // Requirement for mobile
+  // Always try to resume context first (mobile requirement)
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(e => console.log("Audio resume failed:", e));
+  }
+  
+  // Don't play if audio isn't unlocked on mobile
+  if (!audioUnlocked && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+    return;
+  }
+  
   const buffer = buffers[id];
   if (!buffer) return;
 
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-  source.playbackRate.value = rate;
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = volume;
-  source.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-  source.start(0);
+  try {
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.playbackRate.value = rate;
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = volume;
+    source.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    source.start(0);
+  } catch (e) {
+    console.error("Error playing sound:", id, e);
+  }
 }
 
 function unlockAudio() {
-  if (audioCtx.state === "suspended") audioCtx.resume();
-  const buffer = audioCtx.createBuffer(1, 1, 22050);
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(audioCtx.destination);
-  source.start(0);
-  audioUnlocked = true;
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().then(() => {
+      audioUnlocked = true;
+      console.log("Audio unlocked successfully");
+      
+      // Play a silent sound to fully unlock audio on mobile
+      const buffer = audioCtx.createBuffer(1, 1, 22050);
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+    }).catch(e => {
+      console.log("Audio unlock failed:", e);
+    });
+  } else {
+    audioUnlocked = true;
+  }
+}
+
+// Force unlock audio on first user interaction
+function forceAudioUnlock() {
+  if (!audioUnlocked) {
+    unlockAudio();
+  }
 }
 
 window.soundController = {
   playCountdownTick: () => playSound("snd-tick", 0.15, 1),
   playForfeitSound: () => playSound("snd-tick", 0.2, 0.8),
-  unlockAudio: unlockAudio
+  unlockAudio: unlockAudio,
+  forceAudioUnlock: forceAudioUnlock
 };
 
 // Global click/touch sound bindings
 document.addEventListener("DOMContentLoaded", () => {
+  // Add audio unlock to ALL button clicks
   document.querySelectorAll("button").forEach((btn) => {
-    btn.addEventListener("click", () => playSound("snd-click", 0.2, 1));
+    btn.addEventListener("click", () => {
+      // Force audio unlock on first click
+      if (window.soundController) {
+        window.soundController.forceAudioUnlock();
+      }
+      playSound("snd-click", 0.2, 1);
+    });
   });
 
   // Setup Result Observer
@@ -74,4 +112,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     observer.observe(screenText, { childList: true, subtree: true });
   }
+  
+  // Also unlock on touchstart for mobile
+  document.addEventListener("touchstart", () => {
+    if (window.soundController) {
+      window.soundController.forceAudioUnlock();
+    }
+  }, { once: true });
 });
