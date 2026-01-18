@@ -36,13 +36,28 @@ body {
   backface-visibility: hidden;
 }
 
-.shell      { transform: translateZ(0); }
-.embossed   { transform: translateZ(6px); }
-.buttons    { transform: translateZ(10px); }
-.logo       { transform: translateZ(14px); }
-.rps        { transform: translateZ(15px); }
-.screen-art { transform: translateZ(22px); }
-.light      { transform: translateZ(30px); opacity: 1; }
+.shell {
+  transform: translateZ(0);
+}
+.embossed {
+  transform: translateZ(6px);
+}
+.buttons {
+  transform: translateZ(10px);
+}
+.logo {
+  transform: translateZ(14px);
+}
+.rps {
+  transform: translateZ(15px);
+}
+.screen-art {
+  transform: translateZ(22px);
+}
+.light {
+  transform: translateZ(30px);
+  opacity: 1;
+}
 
 /* ============================================================
    LCD SCREEN WITH REACTIVE GLOSSY LIGHT STREAK
@@ -57,11 +72,13 @@ body {
   overflow: hidden;
   transform: translateZ(18px);
   background: rgba(143, 164, 122, 0.25);
-  transition: filter 0.15s ease, opacity 0.3s ease;
+  transition:
+    filter 0.15s ease,
+    opacity 0.3s ease;
   z-index: 50;
-  
+
   /* Create a base for the glossy effect */
-  box-shadow: 
+  box-shadow:
     inset 0 0 30px rgba(0, 0, 0, 0.4),
     inset 0 0 10px rgba(0, 0, 0, 0.3),
     0 4px 20px rgba(0, 0, 0, 0.3);
@@ -76,7 +93,7 @@ body {
   z-index: 1;
   border-radius: 10px;
   opacity: 0.3;
-  
+
   /* Default light streak position (center) */
   background: linear-gradient(
     135deg,
@@ -88,7 +105,7 @@ body {
   );
   background-size: 200% 200%;
   background-position: 50% 50%;
-  
+
   /* Subtle animation for light shimmer */
   animation: light-shimmer 3s ease-in-out infinite;
 }
@@ -101,7 +118,7 @@ body {
   pointer-events: none;
   z-index: 2;
   border-radius: 10px;
-  
+
   /* Glass reflection gradient */
   background: linear-gradient(
     165deg,
@@ -111,16 +128,16 @@ body {
     rgba(0, 0, 0, 0.05) 70%,
     rgba(0, 0, 0, 0.1) 100%
   );
-  
+
   /* Pixel grid overlay */
-  background-image: 
-    radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px);
   background-size: 3px 3px;
   mix-blend-mode: overlay;
 }
 
 @keyframes light-shimmer {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.25;
     background-size: 180% 180%;
   }
@@ -144,7 +161,7 @@ body {
   line-height: 1.4;
   letter-spacing: 2px;
   color: rgba(34, 49, 34, 0.57);
-  text-shadow: 0 1px 1px rgba(0,0,0,0.25);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
   white-space: pre-wrap;
 }
 
@@ -177,10 +194,12 @@ body {
 }
 
 @keyframes blink-anim {
-  0%, 49% {
+  0%,
+  49% {
     opacity: 1;
   }
-  50%, 100% {
+  50%,
+  100% {
     opacity: 0;
   }
 }
@@ -199,16 +218,51 @@ button {
   transform: translateZ(40px);
 }
 
-.btn-rock     { width: 44px; height: 42px; top: 358px; left: 75px; }
-.btn-paper    { width: 44px; height: 42px; top: 394px; left: 159px; }
-.btn-scissors { width: 44px; height: 42px; top: 357px; left: 244px; }
-.btn-start    { width: 60px; height: 45px; top: 290px; left: 110px; }
-.btn-reset    { width: 60px; height: 45px; top: 290px; left: 190px; }
+.btn-rock {
+  width: 44px;
+  height: 42px;
+  top: 358px;
+  left: 75px;
+}
+.btn-paper {
+  width: 44px;
+  height: 42px;
+  top: 394px;
+  left: 159px;
+}
+.btn-scissors {
+  width: 44px;
+  height: 42px;
+  top: 357px;
+  left: 244px;
+}
+.btn-start {
+  width: 60px;
+  height: 45px;
+  top: 290px;
+  left: 110px;
+}
+.btn-reset {
+  width: 60px;
+  height: 45px;
+  top: 290px;
+  left: 190px;
+}
 
-button:active { filter: brightness(1.4); }
+button:active {
+  filter: brightness(1.4);
+}
 
 /* ============================================================
    MOBILE RESPONSIVENESS
    ============================================================ */
-@media (max-width: 380px) { .device-wrapper { transform: scale(0.85); } }
-@media (max-height: 600px) { .device-wrapper { transform: scale(0.75); } }
+@media (max-width: 380px) {
+  .device-wrapper {
+    transform: scale(0.85);
+  }
+}
+@media (max-height: 600px) {
+  .device-wrapper {
+    transform: scale(0.75);
+  }
+}
